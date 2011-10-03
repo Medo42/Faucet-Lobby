@@ -1,0 +1,54 @@
+All multibyte values are big-endian. All strings are UTF-8.
+
++  0    Registration protocol (UUID = b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352)
+        Everything below here is only valid for this registration protocol ID
++ 16    Server ID (UUID)
+        A unique identification for this server. This will be used later to allow servers to register
+        alternative endpoints (probably only used for IPv6 endpoints). This means the ID does not need
+        to be persistent between server restarts, and can be generated at startup.
++ 32    Lobby ID (UUID = 1ccf16b1-436d-856f-504d-cc1af306aaa7 for GG2 and its mods)
+        This defines a kind of "community scope" of related games/mods
++ 48    Transport protocol (0=TCP, 1=UDP, needs to be 0 for now, other values are reserved)
++ 49    Port number (uint16)
+        If the transport protocol is TCP (the only option for now), this needs to be an open TCP port
+        reachable from the lobby. You cannot run multiple servers on the same port. If the lobby
+        receives a registration with the same IP, port and transport protocol as an existing server,
+        the existing entry will be replaced.
+        The port must not be 0 in TCP or UDP, since this is not a valid port number.
++ 51    Number of total player slots (uint16)
+        How many actual players (not bots) can be in the game?
++ 53    Number of occupied player slots (uint16)
+        How many actual players are in the game?
++ 55    Number of AI players (uint16)
+        Note that bots+players can be greater than player slot count. If you want a fixed number
+        of bots as well as a fixed maximum number of players per team, subtract the bot slots
+        from the player slots.
++ 57    Flags (uint16_t)
+        - 57:0    Password protected
+        - rest    reserved
++ 59    key/value table
+        Each entry consists of:
+        + 0     key length (bytes) (uint8_t)
+        + 1     key
+        + n     value length (bytes) (uint16_t)
+        + n+1   value
+
+    There is a distinction between "specified" keys and "extension" keys. Specified keys have a
+    fixed meaning, which allows them to be used for collecting statistic information or generic server
+    browsers. Extension keys always start with "x-" to mark them as extension, e.g. "x-respawntime". Their
+    meaning is not specified and any game can define its own extension keys. The prefix is supposed to
+    prevent name clashes with new keys specified in the future.
+    It is mandatory to provide a server name, all other keys are optional.
+    
+    The following specified keys exist:
+    protocol_id:    A binary 16-byte UUID which can be used by clients to determine whether the server is
+                    compatible and can be joined. This might be replaced with a more sophisticated system
+                    later, since compatibility is sometimes one-way.
+    name:           The server's plaintext identification (e.g. "Bacon Town 24/7").
+    game:           The name of the game or mod this server is running. E.g. "Vindicator's Server Mod"
+    game_short:     Abbreviated version of "game", for display in small space. E.g. "vinmod" or "gg2".
+                    Should only be provided if "game" is present too. Can be left out if "game" is short
+                    already.
+    game_ver:       Short version string for the game, e.g. "v2.3.7b2"
+    game_url:       URL with information about the game/mod
+    map:            The map currently running on the server.
