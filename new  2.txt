@@ -32,7 +32,7 @@ All multibyte values are big-endian. All strings are UTF-8.
         + 0     key length (bytes) (uint8)
         + 1     key
         + n     value length (bytes) (uint16)
-        + n+1   value
+        + n+2   value
 
     There is a distinction between "specified" keys and "extension" keys. Specified keys have a
     fixed meaning, which allows them to be used for collecting statistic information or generic server
