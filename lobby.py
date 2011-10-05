@@ -258,7 +258,7 @@ class GG2RegHandler(object):
         server.players = struct.unpack(">H", data[53:55])[0]
         server.bots = struct.unpack(">H", data[55:57])[0]
         
-        server.passworded = ((ord(data[57]) & 1) != 0)
+        server.passworded = ((ord(data[58]) & 1) != 0)
         kvtable = data[59:]
         while(kvtable):
             keylen = ord(kvtable[0])

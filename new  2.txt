@@ -23,14 +23,14 @@ All multibyte values are big-endian. All strings are UTF-8.
         Note that bots+players can be greater than player slot count. If you want a fixed number
         of bots as well as a fixed maximum number of players per team, subtract the bot slots
         from the player slots.
-+ 57    Flags (uint16_t)
-        - 57:0    Password protected
-        - rest    reserved
++ 57    Flags (uint16)
+        - :0    Password protected
+        - rest  reserved
 + 59    key/value table
         Each entry consists of:
-        + 0     key length (bytes) (uint8_t)
+        + 0     key length (bytes) (uint8)
         + 1     key
-        + n     value length (bytes) (uint16_t)
+        + n     value length (bytes) (uint16)
         + n+1   value
 
     There is a distinction between "specified" keys and "extension" keys. Specified keys have a
