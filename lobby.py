@@ -243,7 +243,7 @@ class NewStyleReg(DatagramProtocol):
     
 class GG2RegHandler(object):
     def handle(self, data, (host, origport), serverList):
-        if(len(data) < 59): return
+        if(len(data) < 61): return
         
         server_id = uuid.UUID(bytes=data[16:32])
         lobby_id = uuid.UUID(bytes=data[32:48])
@@ -259,8 +259,10 @@ class GG2RegHandler(object):
         server.bots = struct.unpack(">H", data[55:57])[0]
         
         server.passworded = ((ord(data[58]) & 1) != 0)
-        kvtable = data[59:]
-        while(kvtable):
+        kventries = struct.unpack(">H", data[59:61])[0]
+        kvtable = data[61:]
+        for i in xrange(kventries):
+            if(len(kvtable) < 1): return
             keylen = ord(kvtable[0])
             valueoffset = keylen+3
             if(len(kvtable) < valueoffset): return

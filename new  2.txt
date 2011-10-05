@@ -26,7 +26,8 @@ All multibyte values are big-endian. All strings are UTF-8.
 + 57    Flags (uint16)
         - :0    Password protected
         - rest  reserved
-+ 59    key/value table
++ 59    Number of entries in key/value table (uint16)    
++ 61    key/value table
         Each entry consists of:
         + 0     key length (bytes) (uint8)
         + 1     key
