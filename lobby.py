@@ -1,4 +1,4 @@
-import time, collections, uuid, struct, re, socket
+import time, collections, uuid, struct, re, socket, weblist, twisted.web.server, twisted.web.static, twisted.web
 from twisted.internet.protocol import Factory, ClientFactory, Protocol, DatagramProtocol
 from twisted.internet import reactor
 from expirationset import expirationset
@@ -7,6 +7,7 @@ class GameServer:
     def __init__(self, server_id, lobby_id):
         self.server_id = server_id
         self.lobby_id = lobby_id
+        self.protocol = 0           # 0 = TCP, 1 = UDP
         self.ipv4_endpoint = None   # Tuple: (ipv4, port), as binary string and int
         self.ipv6_endpoint = None   # Tuple: (ipv6, port), as binary string and int
 
@@ -96,7 +97,9 @@ class GameServerList:
         except KeyError:
             return set()
 
-
+    def get_lobbies(self):
+        return self._lobby_dict.keys()
+        
 GG2_BASE_UUID = uuid.UUID("dea41970-4cea-a588-df40-62faef6f1738")
 GG2_LOBBY_ID = uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7")
 def gg2_version_to_uuid(data):
@@ -141,7 +144,46 @@ class GG2LobbyQueryV1(Protocol):
             
     def connectionMade(self):
         self.buffered = ""
-        self.timeout = reactor.callLater(3, self.transport.loseConnection)
+        self.timeout = reactor.callLater(5, self.transport.loseConnection)
+
+    def connectionLost(self, reason):
+        if(self.timeout.active()): self.timeout.cancel()
+
+class NewStyleList(Protocol):
+    LIST_PROTOCOL_ID = uuid.UUID("297d0df4-430c-bf61-640a-640897eaef57")
+
+    def formatKeyValue(self, k, v):
+        k = k[:255]
+        v = v[:65535]
+        return chr(len(k)) + k + struct.pack(">H", len(v)) + v
+
+    def formatServerData(self, server):
+        ipv4_endpoint = server.ipv4_endpoint or ("", 0) 
+        ipv6_endpoint = server.ipv6_endpoint or ("", 0)
+        flags = (1 if server.passworded else 0)
+        infos = server.infos.copy()
+        infos["name"] = server.name
+        result = struct.pack(">BH4sH16sHHHHH", server.protocol, ipv4_endpoint[1], ipv4_endpoint[0], ipv6_endpoint[1], ipv6_endpoint[0], server.slots, server.players, server.bots, flags, len(infos))
+        result += "".join([self.formatKeyValue(k, v) for (k, v) in infos.iteritems()])
+        return struct.pack(">L", len(result))+result
+
+    def sendReply(self, lobby_id):
+        servers = [self.formatServerData(server) for server in self.factory.serverList.get_servers_in_lobby(lobby_id)]
+        self.transport.write(struct.pack(">L",len(servers))+"".join(servers))
+        print "Received newstyle query for Lobby %s, returned %u Servers." % (lobby_id.hex, len(servers))
+    
+    def dataReceived(self, data):
+        self.buffered += data
+        if(len(self.buffered) == 32):
+            if(uuid.UUID(bytes=self.buffered[:16]) == NewStyleList.LIST_PROTOCOL_ID):
+                self.sendReply(uuid.UUID(bytes=self.buffered[16:32]))
+        if(len(self.buffered) >= 32):
+            self.transport.loseConnection()
+            
+    def connectionMade(self):
+        self.buffered = ""
+        self.list_protocol = None
+        self.timeout = reactor.callLater(5, self.transport.loseConnection)
 
     def connectionLost(self, reason):
         if(self.timeout.active()): self.timeout.cancel()
@@ -175,7 +217,7 @@ RECENT_ENDPOINTS = expirationset(10)
         
 class GG2LobbyRegV1(DatagramProtocol):
     MAGIC_NUMBERS = chr(4)+chr(8)+chr(15)+chr(16)+chr(23)+chr(42)
-    INFO_PATTERN = re.compile(r"\A(!private!)?(?:\[([^\]]*)\])?\s*(.*?)\s*(?:\[(\d+)/(\d+)\])?(?: - OHU)?\Z", re.DOTALL)
+    INFO_PATTERN = re.compile(r"\A(!private!)?(?:\[([^\]]*)\])?\s*(.*?)\s*(?:\[(\d+)/(\d+)\])?(?: - (.*))?\Z", re.DOTALL)
     CONN_CHECK_FACTORY = Factory()
     CONN_CHECK_FACTORY.protocol = SimpleTCPReachabilityCheck
         
@@ -205,6 +247,8 @@ class GG2LobbyRegV1(DatagramProtocol):
         server = GameServer(server_id, GG2_LOBBY_ID)
         server.infos["protocol_id"] = protocol_id.bytes
         server.ipv4_endpoint = (ip, port)
+        server.infos["game"] = "Legacy Gang Garrison 2 version or mod";
+        server.infos["game_short"] = "old";
         matcher = GG2LobbyRegV1.INFO_PATTERN.match(infostr)
         if(matcher):
             if(matcher.group(1) is not None): server.passworded = True
@@ -212,6 +256,15 @@ class GG2LobbyRegV1(DatagramProtocol):
             server.name = matcher.group(3)
             if(matcher.group(4) is not None): server.players = int(matcher.group(4))
             if(matcher.group(5) is not None): server.slots = int(matcher.group(5))
+            if(matcher.group(6) is not None):
+                mod = matcher.group(6)
+                if(mod=="OHU"):
+                    server.infos["game"] = "Orpheon's Hosting Utilities"
+                    server.infos["game_short"] = "ohu"
+                    server.infos["game_url"] = "http://www.ganggarrison.com/forums/index.php?topic=28839.0"
+                else:
+                    server.infos["game"] = mod
+                    if(len(mod)<=10): del server.infos["game_short"]
         else:
             server.name = infostr
         conn = reactor.connectTCP(host, port, SimpleTCPReachabilityCheckFactory(server, host, port, self.serverList), timeout=5)
@@ -221,6 +274,12 @@ class GG2LobbyQueryV1Factory(Factory):
 
     def __init__(self, serverList):
         self.gg2_lobby_id = uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7")
+        self.serverList = serverList
+
+class NewStyleListFactory(Factory):
+    protocol = NewStyleList
+
+    def __init__(self, serverList):
         self.serverList = serverList
 
 class NewStyleReg(DatagramProtocol):
@@ -253,11 +312,7 @@ class GG2RegHandler(object):
         if(port == 0): return
         ip = socket.inet_aton(host)
         server.ipv4_endpoint = (ip, port)
-        
-        server.slots = struct.unpack(">H", data[51:53])[0]
-        server.players = struct.unpack(">H", data[53:55])[0]
-        server.bots = struct.unpack(">H", data[55:57])[0]
-        
+        server.slots, server.players, server.bots = struct.unpack(">HHH", data[51:57])
         server.passworded = ((ord(data[58]) & 1) != 0)
         kventries = struct.unpack(">H", data[59:61])[0]
         kvtable = data[61:]
@@ -282,9 +337,15 @@ class GG2RegHandler(object):
         conn = reactor.connectTCP(host, port, SimpleTCPReachabilityCheckFactory(server, host, port, serverList), timeout=5)
         
 NewStyleReg.REG_PROTOCOLS[uuid.UUID("b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352")] = GG2RegHandler()
-        
+
 serverList = GameServerList()
 reactor.listenUDP(29942, GG2LobbyRegV1(serverList))
 reactor.listenUDP(29944, NewStyleReg(serverList))
 reactor.listenTCP(29942, GG2LobbyQueryV1Factory(serverList))
+reactor.listenTCP(29944, NewStyleListFactory(serverList))
+
+webres = twisted.web.static.File("httpdocs")
+webres.putChild("status", weblist.LobbyStatusResource(serverList))
+
+reactor.listenTCP(29950, twisted.web.server.Site(webres))
 reactor.run()
