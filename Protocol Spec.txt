@@ -1,5 +1,9 @@
 All multibyte values are big-endian. All strings are UTF-8.
 
+Game server registration
+
+To register a server in the lobby, send a UDP packet to port 29944 of the lobby server. The server will stay in the list for 70 seconds, so sending a registration every 30 seconds will ensure that your server doesn't drop from the list if a packet is lost. Here is the format for the UDP packet:
+
 +  0    Registration protocol (UUID = b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352)
         Everything below here is only valid for this registration protocol ID
 + 16    Server ID (UUID)
@@ -53,3 +57,36 @@ All multibyte values are big-endian. All strings are UTF-8.
     game_ver:       Short version string for the game, e.g. "v2.3.7b2"
     game_url:       URL with information about the game/mod
     map:            The map currently running on the server.
+    
+
+Querying a list
+
+In order to find out which servers are active in a particular lobby, open a TCP connection to port 29944 of the lobby server and send a short request as defined below. The lobby will answer with the requested information and then close the connection.
+
+Client request:
++  0    Requested list protocol (UUID = 297d0df4-430c-bf61-640a-640897eaef57)
+        Everything below here is only valid for this list protocol ID
++ 16    Requested lobby (UUID = 1ccf16b1-436d-856f-504d-cc1af306aaa7 for GG2 and its mods)
+
+Lobby reply:
++  0    Server count (uint32_t)
++  4    Server list
+        For each server:
+        +  0    Server data block length (uint32)
+        +  4    Transport protocol (0=TCP, 1=UDP, always 0 for now)
+        +  5    IPv4 endpoint port number (uint16, 0 if no IPv4 endpoint known)
+        +  7    IPv4 address (4 bytes, ignore if port is 0)
+        + 11    IPv6 endpoint port number (uint16, 0 if no IPv6 endpoint known)
+        + 13    IPv6 address (16 bytes, ignore if port is 0)
+        + 29    Number of total player slots (uint16)
+        + 31    Number of occupied player slots (uint16)
+        + 33    Number of AI players (uint16)
+        + 35    Flags (uint16)
+                - 31:0    Password protected
+                - rest    reserved, ignore for now
+        + 37    key/value table
+                Each entry consists of:
+                + 0     key length (bytes) (uint8_t)
+                + 1     key
+                + n     value length (bytes) (uint16_t)
+                + n+2   value
