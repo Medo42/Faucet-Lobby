@@ -54,7 +54,7 @@ class GameServerList:
             new entry, but the old entry itself will be discarded.
 
             Warning: Do not modify the server's uuid, lobby or endpoint information
-            after registering the server."""
+            after registering the server. Make a new server instead and register that."""
 
         # If we already know an alternative endpoint for the server, copy it over.
         try:
@@ -70,8 +70,7 @@ class GameServerList:
         # Also removes servers which share endpoints with the new one,
         # to prevent people from filling up the server list by generating
         # bogus IDs all pointing to the same actual server.
-        if(server.server_id in self._server_id_dict):
-            self._expirationset.discard(server.server_id)
+        self._expirationset.discard(server.server_id)
         if(server.ipv4_endpoint in self._v4_dict):
             self._expirationset.discard(self._v4_dict[server.ipv4_endpoint])
         if(server.ipv6_endpoint in self._v6_dict):
@@ -90,6 +89,9 @@ class GameServerList:
             self._lobby_dict[server.lobby_id] = lobbyset
         self._expirationset.add(server.server_id)
         
+    def remove(self, server_id):
+        self._expirationset.discard(server_id)
+    
     def get_servers_in_lobby(self, lobby_id):
         self._expirationset.cleanup_stale()
         try:
@@ -213,6 +215,7 @@ class SimpleTCPReachabilityCheckFactory(ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         print "Connection check failed for %s@%s:%i" % (self.__server.name, self.__host, self.__port)
 
+# TODO: Better flood control using a leaky bucket counter
 RECENT_ENDPOINTS = expirationset(10)
         
 class GG2LobbyRegV1(DatagramProtocol):
@@ -289,9 +292,6 @@ class NewStyleReg(DatagramProtocol):
         self.serverList = serverList
     
     def datagramReceived(self, data, (host, origport)):
-        if((host, origport) in RECENT_ENDPOINTS): return
-        RECENT_ENDPOINTS.add((host, origport))
-        
         if(len(data) < 16): return
         try:
             reg_protocol = NewStyleReg.REG_PROTOCOLS[uuid.UUID(bytes=data[0:16])]
@@ -302,6 +302,9 @@ class NewStyleReg(DatagramProtocol):
     
 class GG2RegHandler(object):
     def handle(self, data, (host, origport), serverList):
+        if((host, origport) in RECENT_ENDPOINTS): return
+        RECENT_ENDPOINTS.add((host, origport))
+        
         if(len(data) < 61): return
         
         server_id = uuid.UUID(bytes=data[16:32])
@@ -335,8 +338,15 @@ class GG2RegHandler(object):
             return
         
         conn = reactor.connectTCP(host, port, SimpleTCPReachabilityCheckFactory(server, host, port, serverList), timeout=5)
+
+# TODO: Prevent datagram reordering from re-registering a server (e.g. block the server ID for a few seconds)
+class GG2UnregHandler(object):
+    def handle(self, data, (host, origport), serverList):
+        if(len(data) != 32): return
+        serverList.remove(uuid.UUID(bytes=data[16:32]))
         
 NewStyleReg.REG_PROTOCOLS[uuid.UUID("b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352")] = GG2RegHandler()
+NewStyleReg.REG_PROTOCOLS[uuid.UUID("488984ac-45dc-86e1-9901-98dd1c01c064")] = GG2UnregHandler()
 
 serverList = GameServerList()
 reactor.listenUDP(29942, GG2LobbyRegV1(serverList))

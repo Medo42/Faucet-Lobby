@@ -4,12 +4,14 @@ Game server registration
 
 To register a server in the lobby, send a UDP packet to port 29944 of the lobby server. The server will stay in the list for 70 seconds, so sending a registration every 30 seconds will ensure that your server doesn't drop from the list if a packet is lost. Here is the format for the UDP packet:
 
-+  0    Registration protocol (UUID = b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352)
-        Everything below here is only valid for this registration protocol ID
++  0    Message type (UUID = b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352)
 + 16    Server ID (UUID)
-        A unique identification for this server. This will be used later to allow servers to register
+        A random, unique identification for this server. This will be used later to allow servers to register
         alternative endpoints (probably only used for IPv6 endpoints). This means the ID does not need
-        to be persistent between server restarts, and can be generated at startup.
+        to be persistent between server restarts, and can be generated at startup. This ID should be
+        considered secret between the lobby and server, so don't pass it on - someone else could use
+        it to e.g. constantly unregister your server, and later to compromise security protocols based
+        on this ID.
 + 32    Lobby ID (UUID = 1ccf16b1-436d-856f-504d-cc1af306aaa7 for GG2 and its mods)
         This defines a kind of "community scope" of related games/mods
 + 48    Transport protocol (0=TCP, 1=UDP, needs to be 0 for now, other values are reserved)
@@ -58,6 +60,17 @@ To register a server in the lobby, send a UDP packet to port 29944 of the lobby 
     game_url:       URL with information about the game/mod
     map:            The map currently running on the server.
     
+
+    
+To unregister a server on shutdown:
+
+In order to avoid having your server remain in the list for up to 70 seconds after it is shut down,
+you can explicitly unregister a server using its ID. This is done with another UDP packet to port 29944:
+
++  0    Message type (UUID = 488984ac-45dc-86e1-9901-98dd1c01c064)
++ 16    Server ID (UUID)
+
+
 
 Querying a list
 
