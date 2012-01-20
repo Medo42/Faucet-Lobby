@@ -14,7 +14,7 @@ To register a server in the lobby, send a UDP packet to port 29944 of the lobby 
         on this ID.
 + 32    Lobby ID (UUID = 1ccf16b1-436d-856f-504d-cc1af306aaa7 for GG2 and its mods)
         This defines a kind of "community scope" of related games/mods
-+ 48    Transport protocol (0=TCP, 1=UDP, needs to be 0 for now, other values are reserved)
++ 48    Transport protocol (0=TCP, 1=UDP)
 + 49    Port number (uint16)
         If the transport protocol is TCP (the only option for now), this needs to be an open TCP port
         reachable from the lobby. You cannot run multiple servers on the same port. If the lobby
@@ -86,7 +86,7 @@ Lobby reply:
 +  4    Server list
         For each server:
         +  0    Server data block length (uint32)
-        +  4    Transport protocol (0=TCP, 1=UDP, always 0 for now)
+        +  4    Transport protocol (0=TCP, 1=UDP)
         +  5    IPv4 endpoint port number (uint16, 0 if no IPv4 endpoint known)
         +  7    IPv4 address (4 bytes, ignore if port is 0)
         + 11    IPv6 endpoint port number (uint16, 0 if no IPv6 endpoint known)

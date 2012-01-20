@@ -310,7 +310,8 @@ class GG2RegHandler(object):
         server_id = uuid.UUID(bytes=data[16:32])
         lobby_id = uuid.UUID(bytes=data[32:48])
         server = GameServer(server_id, lobby_id)
-        if(ord(data[48]) != 0): return
+        server.protocol = ord(data[48])
+        if(server.protocol not in (0,1)): return
         port = struct.unpack(">H", data[49:51])[0]
         if(port == 0): return
         ip = socket.inet_aton(host)
@@ -337,7 +338,10 @@ class GG2RegHandler(object):
         except KeyError:
             return
         
-        conn = reactor.connectTCP(host, port, SimpleTCPReachabilityCheckFactory(server, host, port, serverList), timeout=5)
+        if(server.protocol == 0):
+            conn = reactor.connectTCP(host, port, SimpleTCPReachabilityCheckFactory(server, host, port, serverList), timeout=5)
+        else:
+            serverList.put(server)
 
 # TODO: Prevent datagram reordering from re-registering a server (e.g. block the server ID for a few seconds)
 class GG2UnregHandler(object):
