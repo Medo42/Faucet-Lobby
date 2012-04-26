@@ -47,15 +47,24 @@ class GameServerList:
     def put(self, server):
         """ Register a server in the lobby list.
 
-            This server will replace any existing entries for this server ID,
-            as well as any entries with a coinciding endpoint.
+            This server will replace any existing entries for this server ID.
             If an entry for this server ID is already present, its endpoint
             information will be used to complement the known endpoint(s) of the
             new entry, but the old entry itself will be discarded.
+            The new server will be rejected if a server with a different ID is
+            already known for the same endpoint.
 
             Warning: Do not modify the server's uuid, lobby or endpoint information
             after registering the server. Make a new server instead and register that."""
 
+        self._expirationset.cleanup_stale()
+        
+        # Abort if there is a server with the same endpoint and different ID
+        if(server.ipv4_endpoint in self._v4_dict and self._v4_dict[server.ipv4_endpoint] != server.server_id
+                or server.ipv6_endpoint in self._v6_dict and self._v6_dict[server.ipv6_endpoint] != server.server_id):
+            print "Server " + str(server) + " rejected - wrong ID for existing endpoint."
+            return
+            
         # If we already know an alternative endpoint for the server, copy it over.
         try:
             oldserver = self._server_id_dict[server.server_id]
@@ -66,15 +75,8 @@ class GameServerList:
         except KeyError:
             pass
 
-        # Remove any old entry for the server.
-        # Also removes servers which share endpoints with the new one,
-        # to prevent people from filling up the server list by generating
-        # bogus IDs all pointing to the same actual server.
+        # Remove old entry for the server, if present.
         self._expirationset.discard(server.server_id)
-        if(server.ipv4_endpoint in self._v4_dict):
-            self._expirationset.discard(self._v4_dict[server.ipv4_endpoint])
-        if(server.ipv6_endpoint in self._v6_dict):
-            self._expirationset.discard(self._v6_dict[server.ipv6_endpoint])
 
         # Add the new entry
         self._server_id_dict[server.server_id] = server
