@@ -2,26 +2,22 @@ from twisted.web.resource import Resource
 from xml.sax.saxutils import escape, quoteattr
 import uuid, socket
 
-pageTemplate = u"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+pageTemplate = u"""<!doctype html>
 
 <head>
 	<title>Lobby status page</title>
 	<meta http-equiv="content-type" 
 		content="text/html;charset=utf-8" />
-    <link rel="stylesheet" type="text/css" href="style.css" />
-</head>
-
+    <link rel="stylesheet" type="text/css" href="style.css" />  
 <body>
-    <h1>Lobby status page</h1>
-    Game information links are provided by the game servers and are not in any way related to this site. You have been warned.
+    <img src="http://static.ganggarrison.com/Themes/GG2/images/smflogo.gif" alt="" id=smflogo><div id=head><img src="http://static.ganggarrison.com/GG2ForumLogo.png" alt="" id=logo></div>
     %s
 </body>
 </html>"""
 
 tableTemplate = u"""
     <h2>Active servers in the %s</h2>
+    <div id=desc><p>Game information links are provided by the game servers and are not in any way related to this site. You have been warned.</p></div>
     <table class="serverlist">
         <thead>
             <tr>
@@ -38,7 +34,16 @@ tableTemplate = u"""
     </table>
 """
 
-rowTemplate = u"""<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"""
+rowTemplate = u"""
+                <tr>
+                    <td class=pw>%s</td>
+                    <td class=name>%s</td>
+                    <td class=map>%s</td>
+                    <td class=players>%s</td>
+                    <td class=game>%s</td>
+                    <td class=ip>%s</td>
+                </tr>
+"""
 
 knownLobbies = {uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7") : u"Gang Garrison Lobby"}
 
