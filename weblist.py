@@ -36,12 +36,12 @@ tableTemplate = u"""
 
 rowTemplate = u"""
                 <tr>
-                    <td class=pw>%s</td>
-                    <td class=name>%s</td>
-                    <td class=map>%s</td>
-                    <td class=players>%s</td>
-                    <td class=game>%s</td>
-                    <td class=ip>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
                 </tr>
 """
 
