@@ -3,12 +3,13 @@ from xml.sax.saxutils import escape, quoteattr
 import uuid, socket
 
 pageTemplate = u"""<!doctype html>
-
+<html>
 <head>
-	<title>Lobby status page</title>
-	<meta http-equiv="content-type" 
-		content="text/html;charset=utf-8" />
+    <title>Lobby status page</title>
+    <meta http-equiv="content-type" 
+        content="text/html;charset=utf-8" />
     <link rel="stylesheet" type="text/css" href="style.css" />  
+</head>
 <body>
     <img src="http://static.ganggarrison.com/Themes/GG2/images/smflogo.gif" alt="" id=smflogo><div id=head><img src="http://static.ganggarrison.com/GG2ForumLogo.png" alt="" id=logo></div>
     %s
