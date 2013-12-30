@@ -1,20 +1,65 @@
-html {
-	font-family: sans-serif;
+#head {
+    background: rgb(119, 94, 87);
+    padding: 4px 14px;
+    color: white;
+    margin: 0;
 }
 
-h1 {
-	text-align: center;
+#desc {
+    background: rgb(205, 182, 167);
+    padding: 2px 10px;
+    font-size: 8pt;
+    margin: 10px 0;
+}
+
+#smflogo {
+    float: right;
+    margin: 2px;
+}
+
+h2 {
+    background: rgb(205, 182, 167);
+    padding: 2px 10px;
+    font-size: 14pt;
+    margin: 10px 0;
+}
+
+
+body {
+    font-family: Verdana, sans-serif;
+    font-size: 10pt;
+    color: white;
+    background: rgb(200, 200, 200);
+    color: black;
+    padding: 12px 30px 4px;
+    margin: 0;
 }
 
 table.serverlist {
-	border-collapse: collapse;
+    border-collapse: collapse;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 table.serverlist td, table.serverlist th {
-	border: 1px solid black;
+    border: 1px solid black;
     padding: 2px 5px;
 }
 
 table.serverlist th {
-	border-bottom: 2px solid black;
+    border-bottom: 2px solid black;
+}
+tr {
+    background: rgb(236, 237, 243);
+}
+td:nth-child(odd) {
+    background: rgb(246, 246, 246);
+}
+.pw {
+    width: 37px;
+}
+th {
+    background: rgb(119, 94, 87);
+    color: white;
+    font-weight: normal;
 }
