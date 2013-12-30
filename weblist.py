@@ -40,7 +40,10 @@ tableTemplate = u"""
 
 rowTemplate = u"""<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"""
 
-knownLobbies = {uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7") : u"Gang Garrison Lobby"}
+knownLobbies = {
+    uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7") : u"Gang Garrison Lobby",
+    uuid.UUID("0e29560e-443a-93a3-e15e-7bd072df7506") : u"PyGG2 Testing Lobby"
+}
 
 def htmlprep(utf8string):
     return escape(unicode(utf8string, 'utf8', 'replace'))
