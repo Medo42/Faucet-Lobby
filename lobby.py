@@ -29,16 +29,15 @@ class GameServerList:
     def __init__(self, duration=70):
         self._expirationset = expirationset(duration, self._remove_callback)
         self._server_id_dict = {}
-        self._v4_dict = {}
-        self._v6_dict = {}
+        self._endpoint_dict = {}
         self._lobby_dict = {}
 
     def _remove_callback(self, server_id, expired):
         server = self._server_id_dict.pop(server_id)
         if(server.ipv4_endpoint is not None):
-            del self._v4_dict[server.ipv4_endpoint]
+            del self._endpoint_dict[server.ipv4_endpoint]
         if(server.ipv6_endpoint is not None):
-            del self._v6_dict[server.ipv6_endpoint]
+            del self._endpoint_dict[server.ipv6_endpoint]
         lobbyset = self._lobby_dict[server.lobby_id]
         lobbyset.remove(server)
         if(not lobbyset):
@@ -60,8 +59,8 @@ class GameServerList:
         self._expirationset.cleanup_stale()
         
         # Abort if there is a server with the same endpoint and different ID
-        if(server.ipv4_endpoint in self._v4_dict and self._v4_dict[server.ipv4_endpoint] != server.server_id
-                or server.ipv6_endpoint in self._v6_dict and self._v6_dict[server.ipv6_endpoint] != server.server_id):
+        if(server.ipv4_endpoint in self._endpoint_dict and self._endpoint_dict[server.ipv4_endpoint] != server.server_id
+                or server.ipv6_endpoint in self._endpoint_dict and self._endpoint_dict[server.ipv6_endpoint] != server.server_id):
             print "Server " + str(server) + " rejected - wrong ID for existing endpoint."
             return
             
@@ -81,14 +80,10 @@ class GameServerList:
         # Add the new entry
         self._server_id_dict[server.server_id] = server
         if(server.ipv4_endpoint):
-            self._v4_dict[server.ipv4_endpoint] = server.server_id
+            self._endpoint_dict[server.ipv4_endpoint] = server.server_id
         if(server.ipv6_endpoint):
-            self._v6_dict[server.ipv6_endpoint] = server.server_id
-        try:
-            self._lobby_dict[server.lobby_id].add(server)
-        except KeyError:
-            lobbyset = set((server,))
-            self._lobby_dict[server.lobby_id] = lobbyset
+            self._endpoint_dict[server.ipv6_endpoint] = server.server_id
+        self._lobby_dict.setdefault(server.lobby_id, set()).add(server)
         self._expirationset.add(server.server_id)
         
     def remove(self, server_id):
