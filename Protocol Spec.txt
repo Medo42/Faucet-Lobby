@@ -97,7 +97,8 @@ Lobby reply:
         + 35    Flags (uint16)
                 - 31:0    Password protected
                 - rest    reserved, ignore for now
-        + 37    key/value table
+        + 37    Number of entries in key/value table (uint16)    
+        + 39    key/value table
                 Each entry consists of:
                 + 0     key length (bytes) (uint8_t)
                 + 1     key
