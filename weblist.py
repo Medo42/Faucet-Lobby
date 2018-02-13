@@ -48,7 +48,8 @@ rowTemplate = u"""
 
 knownLobbies = {
     uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7") : u"Gang Garrison Lobby",
-    uuid.UUID("0e29560e-443a-93a3-e15e-7bd072df7506") : u"PyGG2 Testing Lobby"
+    uuid.UUID("0e29560e-443a-93a3-e15e-7bd072df7506") : u"PyGG2 Testing Lobby",
+	uuid.UUID("4fd0319b-5868-4f24-8b77-568cbb18fde9") : u"Vanguard Lobby"
 }
 
 def htmlprep(utf8string):
