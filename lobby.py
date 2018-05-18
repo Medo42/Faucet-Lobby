@@ -21,8 +21,12 @@ class GameServer:
 
     def __repr__(self):
         retstr = "<GameServer, name="+self.name+", lobby_id="+str(self.lobby_id)
-        if(self.ipv4_endpoint is not None) : retstr += ", ipv4_endpoint=" + socket.inet_ntoa(self.ipv4_endpoint[0])+":"+str(self.ipv4_endpoint[1])
-        if(self.ipv6_endpoint is not None) : retstr += ", ipv6_endpoint=" + str(self.ipv6_endpoint)
+        if(self.ipv4_endpoint is not None):
+            anonip = self.ipv4_endpoint[0][:-1]+"\0"
+            retstr += ", ipv4_endpoint=" + socket.inet_ntoa(anonip)+":"+str(self.ipv4_endpoint[1])
+        if(self.ipv6_endpoint is not None):
+            anonip = (self.ipv6_endpoint[0][:-10]+"\0"*10, self.ipv6_endpoint[1])
+            retstr += ", ipv6_endpoint=" + str(anonip)
         return retstr+">"
 
 class GameServerList:
@@ -195,7 +199,7 @@ class SimpleTCPReachabilityCheck(Protocol):
         self.__serverList = serverList
         
     def connectionMade(self):
-        print "Connection check successful for %s@%s:%i" % (self.__server.name, self.__host, self.__port)
+        print "Connection check successful for %s" % (self.__server)
         self.__serverList.put(self.__server)
         self.transport.loseConnection()
 
@@ -210,7 +214,7 @@ class SimpleTCPReachabilityCheckFactory(ClientFactory):
         return SimpleTCPReachabilityCheck(self.__server, self.__host, self.__port, self.__serverList)
 
     def clientConnectionFailed(self, connector, reason):
-        print "Connection check failed for %s@%s:%i" % (self.__server.name, self.__host, self.__port)
+        print "Connection check failed for %s" % (self.__server)
 
 # TODO: Better flood control using a leaky bucket counter
 RECENT_ENDPOINTS = expirationset(10)
