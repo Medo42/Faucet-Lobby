@@ -1,6 +1,6 @@
 # dict-like class with automatic expiration of entries.
 
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from time import time
 
 class expirationset:
@@ -29,7 +29,7 @@ class expirationset:
         curtime = time()
         while(True):
             try:
-                key, regtime = self._data.iteritems().next()
+                key, regtime = next(iter(self._data.items()))
             except StopIteration:
                 break
 

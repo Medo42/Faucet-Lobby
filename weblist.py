@@ -53,7 +53,10 @@ knownLobbies = {
 }
 
 def htmlprep(utf8string):
-    return escape(unicode(utf8string, 'utf8', 'replace'))
+    if isinstance(utf8string, bytes):
+        return escape(utf8string.decode('utf-8', 'replace'))
+    else:
+        return escape(utf8string)
 
 class LobbyStatusResource(Resource):
     isLeaf = True
@@ -63,17 +66,17 @@ class LobbyStatusResource(Resource):
         
     def _format_server(self, server):
         passworded = u"X" if server.passworded else u""
-        name = htmlprep(server.name)
-        map = htmlprep(server.infos["map"]) if "map" in server.infos else u""
+        name = htmlprep(server.name.decode('utf-8', 'replace') if isinstance(server.name, bytes) else server.name)
+        map = htmlprep(server.infos[b"map"].decode('utf-8', 'replace')) if b"map" in server.infos else u""
         if(server.bots == 0):
             players = u"%u/%u" % (server.players, server.slots)
         else:
             players = u"%u+%u/%u" % (server.players, server.bots, server.slots)
-        if("game" in server.infos):
-            game = htmlprep(server.infos["game"])
-            game += (u" "+htmlprep(server.infos["game_ver"])) if ("game_ver" in server.infos) else u""
-            if("game_url" in server.infos):
-                game = u'<a href=%s>%s</a>' % (quoteattr(unicode(server.infos["game_url"], 'utf8', 'replace')), game)
+        if(b"game" in server.infos):
+            game = htmlprep(server.infos[b"game"].decode('utf-8', 'replace'))
+            game += (u" "+htmlprep(server.infos[b"game_ver"].decode('utf-8', 'replace'))) if (b"game_ver" in server.infos) else u""
+            if(b"game_url" in server.infos):
+                game = u'<a href=%s>%s</a>' % (quoteattr(server.infos[b"game_url"].decode('utf-8', 'replace')), game)
         else:
             game = u""
         address = (u"%s:%u" % (socket.inet_ntoa(server.ipv4_endpoint[0]), server.ipv4_endpoint[1])) if server.ipv4_endpoint is not None else u""
