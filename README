@@ -1,1 +1,44 @@
-Note: This project was started for Gang Garrison 2, but is supposed to be more generic. At the moment, there are special exceptions and legacy protocol implementations in the code, but those should be put into seperate modules later. The code could generally do with some splitting up. Just so you know that things are this way because they were done quickly and by someone with little Python experience (me), not because I think it was good practice.
+# Faucet Lobby
+
+A game server lobby system originally created for Gang Garrison 2 but designed to be more generic. This is a Python-based server discovery system that allows game servers to register themselves and clients to query for available servers.
+
+## Running the Server
+
+Start the lobby server:
+```bash
+python lobby.py
+```
+
+The server requires Python 3 and the Twisted framework. Install dependencies with:
+```bash
+pip install twisted requests
+```
+
+## Running Tests
+
+The project includes comprehensive integration tests that verify all protocols and functionality:
+
+```bash
+# Run all integration tests
+python test_integration.py
+
+# Or with virtual environment
+source venv/bin/activate
+python test_integration.py
+```
+
+The test suite includes:
+- Web interface HTTP response testing
+- New-style protocol server registration and querying
+- Legacy GG2 protocol compatibility testing
+- Server discovery and listing functionality
+
+Tests automatically start/stop the lobby server and verify proper operation of all network protocols.
+
+## Architecture
+
+The system supports both legacy Gang Garrison 2 protocols and newer generic protocols. See CLAUDE.md for detailed architecture documentation.
+
+## Legacy Note
+
+This project was started for Gang Garrison 2, but is supposed to be more generic. At the moment, there are special exceptions and legacy protocol implementations in the code, but those should be put into separate modules later. The code could generally do with some splitting up.

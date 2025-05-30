@@ -155,14 +155,44 @@ def test_server_registration():
 def test_legacy_protocol():
     """Test legacy GG2 protocol registration and query"""
     print("Testing legacy GG2 protocol...")
+    
+    # Choose a port for our mock server
+    mock_server_port = 23456
+    connection_received = threading.Event()
+    
+    def mock_server():
+        """Mock game server that accepts the lobby's connection check"""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
+                server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server_sock.bind(("127.0.0.1", mock_server_port))
+                server_sock.listen(1)
+                server_sock.settimeout(5.0)  # Don't wait forever
+                
+                try:
+                    conn, _ = server_sock.accept()
+                    connection_received.set()
+                    conn.close()
+                except socket.timeout:
+                    pass  # Timeout is ok, maybe the test failed elsewhere
+        except Exception:
+            pass  # If port is busy, etc.
+    
     try:
+        # Start mock server in background
+        server_thread = threading.Thread(target=mock_server, daemon=True)
+        server_thread.start()
+        
+        # Give server time to start
+        time.sleep(0.1)
+        
         # Legacy magic numbers
         MAGIC_NUMBERS = bytes([4, 8, 15, 16, 23, 42])
         
         # Create legacy registration packet
         packet = MAGIC_NUMBERS
         packet += bytes([1])  # Simple version (not 128)
-        packet += struct.pack("<H", 23456)  # Port (little endian)
+        packet += struct.pack("<H", mock_server_port)  # Port (little endian)
         
         # Info string
         info = "Test Legacy Server [5/10]"
@@ -174,7 +204,12 @@ def test_legacy_protocol():
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.sendto(packet, ("127.0.0.1", 29942))
         
-        # Give server time to process
+        # Wait for connection check to complete
+        if not connection_received.wait(timeout=3.0):
+            print("✗ Legacy protocol test FAILED (lobby didn't connect for reachability check)")
+            return False
+            
+        # Give server time to process registration
         time.sleep(0.5)
         
         # Query using legacy protocol
@@ -184,13 +219,42 @@ def test_legacy_protocol():
             
             # Read response
             response = sock.recv(1024)
-            if len(response) > 0:
-                server_count = response[0]
-                print(f"✓ Legacy protocol test PASSED (found {server_count} servers)")
-                return True
-            else:
+            if len(response) == 0:
                 print("✗ Legacy protocol test FAILED (no response)")
                 return False
+                
+            server_count = response[0]
+            if server_count == 0:
+                print("✗ Legacy protocol test FAILED (no servers registered)")
+                return False
+                
+            # Parse server data to verify it's correct
+            offset = 1
+            for _ in range(server_count):
+                if offset >= len(response):
+                    print("✗ Legacy protocol test FAILED (truncated response)")
+                    return False
+                    
+                info_len = response[offset]
+                offset += 1
+                
+                if offset + info_len + 6 > len(response):  # info + IP(4) + port(2)
+                    print("✗ Legacy protocol test FAILED (truncated server data)")
+                    return False
+                    
+                server_info = response[offset:offset + info_len].decode('utf-8', 'replace')
+                offset += info_len
+                
+                # Skip IP and port
+                offset += 6
+                
+                # Verify server info contains our test data
+                if "Test Legacy Server" in server_info and "[5/10]" in server_info:
+                    print(f"✓ Legacy protocol test PASSED (registered server found: {server_info})")
+                    return True
+                    
+            print(f"✗ Legacy protocol test FAILED (server registered but with wrong info)")
+            return False
                 
     except Exception as e:
         print(f"✗ Legacy protocol test FAILED: {e}")
