@@ -224,6 +224,10 @@ class SimpleTCPReachabilityCheckFactory(ClientFactory):
 
 # TODO: Better flood control using a leaky bucket counter
 RECENT_ENDPOINTS = expirationset(10)
+
+# Example IP
+BANNED_IP_STRINGS = {"1.2.3.4"}
+BANNED_IPS = {socket.inet_aton(x) for x in BANNED_IP_STRINGS}
         
 class GG2LobbyRegV1(DatagramProtocol):
     MAGIC_NUMBERS = chr(4)+chr(8)+chr(15)+chr(16)+chr(23)+chr(42)
@@ -253,6 +257,7 @@ class GG2LobbyRegV1(DatagramProtocol):
         if(len(infostr) != infolen): return
 
         ip = socket.inet_aton(host)
+        if(ip in BANNED_IPS): return
         server_id = uuid.UUID(int=GG2_BASE_UUID.int+(struct.unpack("!L",ip)[0]<<16)+port)
         server = GameServer(server_id, GG2_LOBBY_ID)
         server.infos["protocol_id"] = protocol_id.bytes
@@ -322,6 +327,7 @@ class GG2RegHandler(object):
         port = struct.unpack(">H", data[49:51])[0]
         if(port == 0): return
         ip = socket.inet_aton(host)
+        if(ip in BANNED_IPS): return
         server.ipv4_endpoint = (ip, port)
         server.slots, server.players, server.bots = struct.unpack(">HHH", data[51:57])
         server.passworded = ((ord(data[58]) & 1) != 0)
