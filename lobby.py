@@ -178,9 +178,15 @@ class NewStyleList(Protocol):
     def dataReceived(self, data):
         self.buffered += data
         if(len(self.buffered) == 32):
-            if(uuid.UUID(bytes=self.buffered[:16]) == NewStyleList.LIST_PROTOCOL_ID):
+            proto_id = uuid.UUID(bytes=self.buffered[:16])
+            if(proto_id == NewStyleList.LIST_PROTOCOL_ID):
                 self.sendReply(uuid.UUID(bytes=self.buffered[16:32]))
+            else:
+                print "Received wrong protocol UUID %s" % (proto_id.hex)
+                self.transport.loseConnection()
         if(len(self.buffered) >= 32):
+            if(len(self.buffered) > 32):
+                print "Received too many bytes: %u" % (len(self.buffered))
             self.transport.loseConnection()
             
     def connectionMade(self):
