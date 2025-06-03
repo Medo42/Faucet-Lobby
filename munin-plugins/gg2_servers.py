@@ -2,7 +2,10 @@
 
 from __future__ import with_statement
 from contextlib import closing
-import socket, uuid, struct, sys
+import socket, uuid, struct, sys, os
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+import config
 
 def read_fully(sock, length):
 	result = b''
@@ -19,7 +22,7 @@ else:
 	LIST_PROTOCOL_ID = uuid.UUID("297d0df4-430c-bf61-640a-640897eaef57")
 	GG2_LOBBY_ID = uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7")
 
-	with closing(socket.create_connection(("127.0.0.1", 29944))) as sock:
+	with closing(socket.create_connection(("127.0.0.1", config.NEWSTYLE_PORT))) as sock:
 		sock.sendall(LIST_PROTOCOL_ID.bytes + GG2_LOBBY_ID.bytes)
 
 		total_playercount = 0

@@ -1,5 +1,6 @@
 import socket
 from expirationset import expirationset
+import config
 
 class GameServer:
     def __init__(self, server_id, lobby_id):
@@ -28,7 +29,7 @@ class GameServer:
         return retstr+">"
 
 class GameServerList:
-    def __init__(self, duration=70):
+    def __init__(self, duration=config.SERVER_EXPIRATION_SECS):
         self._expirationset = expirationset(duration, self._remove_callback)
         self._server_id_dict = {}
         self._endpoint_dict = {}

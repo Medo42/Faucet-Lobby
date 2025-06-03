@@ -5,12 +5,13 @@ import socket
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, DatagramProtocol, Factory
 
+import config
+
 from server import GameServer
 from protocols.common import (
     SimpleTCPReachabilityCheck,
     SimpleTCPReachabilityCheckFactory,
     RECENT_ENDPOINTS,
-    BANNED_IPS,
 )
 
 GG2_BASE_UUID = uuid.UUID("dea41970-4cea-a588-df40-62faef6f1738")
@@ -66,7 +67,9 @@ class GG2LobbyQueryV1(Protocol):
 
     def connectionMade(self):
         self.buffered = b""
-        self.timeout = reactor.callLater(5, self.transport.loseConnection)
+        self.timeout = reactor.callLater(
+            config.CONNECTION_TIMEOUT_SECS, self.transport.loseConnection
+        )
 
     def connectionLost(self, reason):
         if self.timeout.active():
@@ -108,7 +111,7 @@ class GG2LobbyRegV1(DatagramProtocol):
             return
 
         ip = socket.inet_aton(host)
-        if ip in BANNED_IPS:
+        if ip in config.BANNED_IPS:
             return
         server_id = uuid.UUID(int=GG2_BASE_UUID.int + (struct.unpack("!L", ip)[0] << 16) + port)
         server = GameServer(server_id, GG2_LOBBY_ID)
@@ -143,7 +146,7 @@ class GG2LobbyRegV1(DatagramProtocol):
             host,
             port,
             SimpleTCPReachabilityCheckFactory(server, host, port, self.serverList),
-            timeout=5,
+            timeout=config.CONNECTION_TIMEOUT_SECS,
         )
 
 class GG2LobbyQueryV1Factory(Factory):

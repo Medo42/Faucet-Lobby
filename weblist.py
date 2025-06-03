@@ -1,20 +1,21 @@
 from twisted.web.resource import Resource
 from xml.sax.saxutils import escape, quoteattr
-import uuid, socket
+import socket
+import config
 
 pageTemplate = u"""<!doctype html>
 <html>
 <head>
     <title>Lobby status page</title>
-    <meta http-equiv="content-type" 
+    <meta http-equiv="content-type"
         content="text/html;charset=utf-8" />
-    <link rel="stylesheet" type="text/css" href="style.css" />  
+    <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-    <img src="http://static.ganggarrison.com/Themes/GG2/images/smflogo.gif" alt="" id=smflogo><div id=head><img src="http://static.ganggarrison.com/GG2ForumLogo.png" alt="" id=logo></div>
-    %s
+    <img src="%s" alt="" id=smflogo><div id=head><img src="%s" alt="" id=logo></div>
+    %%s
 </body>
-</html>"""
+</html>""" % (config.LOGO_SMFL, config.LOGO_MAIN)
 
 tableTemplate = u"""
     <h2>Active servers in the %s</h2>
@@ -46,11 +47,6 @@ rowTemplate = u"""
                 </tr>
 """
 
-knownLobbies = {
-    uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7") : u"Gang Garrison Lobby",
-    uuid.UUID("0e29560e-443a-93a3-e15e-7bd072df7506") : u"PyGG2 Testing Lobby",
-	uuid.UUID("4fd0319b-5868-4f24-8b77-568cbb18fde9") : u"Vanguard Lobby"
-}
 
 def htmlprep(utf8string):
     if isinstance(utf8string, bytes):
@@ -83,8 +79,8 @@ class LobbyStatusResource(Resource):
         return rowTemplate % (passworded, name, map, players, game, address)
         
     def _format_table(self, lobby):
-        if(lobby in knownLobbies):
-            lobbyname = escape(knownLobbies[lobby])
+        if lobby in config.KNOWN_LOBBIES:
+            lobbyname = escape(config.KNOWN_LOBBIES[lobby])
         else:
             lobbyname = u'unknown lobby "%s"' % lobby.hex
             

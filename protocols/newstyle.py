@@ -4,11 +4,12 @@ import socket
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 
+import config
+
 from server import GameServer
 from protocols.common import (
     SimpleTCPReachabilityCheckFactory,
     RECENT_ENDPOINTS,
-    BANNED_IPS,
 )
 
 class NewStyleList(Protocol):
@@ -68,7 +69,9 @@ class NewStyleList(Protocol):
     def connectionMade(self):
         self.buffered = b""
         self.list_protocol = None
-        self.timeout = reactor.callLater(5, self.transport.loseConnection)
+        self.timeout = reactor.callLater(
+            config.CONNECTION_TIMEOUT_SECS, self.transport.loseConnection
+        )
 
     def connectionLost(self, reason):
         if self.timeout.active():
@@ -117,7 +120,7 @@ class GG2RegHandler:
         if port == 0:
             return
         ip = socket.inet_aton(host)
-        if ip in BANNED_IPS:
+        if ip in config.BANNED_IPS:
             return
         server.ipv4_endpoint = (ip, port)
         server.slots, server.players, server.bots = struct.unpack(">HHH", data[51:57])
@@ -150,7 +153,7 @@ class GG2RegHandler:
                 host,
                 port,
                 SimpleTCPReachabilityCheckFactory(server, host, port, serverList),
-                timeout=5,
+                timeout=config.CONNECTION_TIMEOUT_SECS,
             )
         else:
             serverList.put(server)
