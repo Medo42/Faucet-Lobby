@@ -1,3 +1,5 @@
+"""Legacy Gang Garrison 2 protocol handlers."""
+
 import uuid
 import struct
 import re
@@ -7,7 +9,7 @@ from twisted.internet.protocol import Protocol, DatagramProtocol, Factory
 
 import config
 
-from server import GameServer
+from server import GameServer, GameServerList
 from protocols.common import (
     SimpleTCPReachabilityCheck,
     SimpleTCPReachabilityCheckFactory,
@@ -17,7 +19,9 @@ from protocols.common import (
 GG2_BASE_UUID = uuid.UUID("dea41970-4cea-a588-df40-62faef6f1738")
 GG2_LOBBY_ID = uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7")
 
-def gg2_version_to_uuid(data):
+def gg2_version_to_uuid(data: bytes) -> uuid.UUID:
+    """Return the protocol UUID encoded in a GG2 version field."""
+
     simplever = data[0]
     if simplever == 128:
         return uuid.UUID(bytes=data[1:17])
@@ -25,7 +29,9 @@ def gg2_version_to_uuid(data):
         return uuid.UUID(int=GG2_BASE_UUID.int + simplever)
 
 class GG2LobbyQueryV1(Protocol):
-    def formatServerData(self, server):
+    """Handle TCP queries from legacy GG2 clients."""
+
+    def formatServerData(self, server: GameServer) -> bytes:
         infostr = b""
         if server.passworded:
             infostr += b"!private!"
@@ -42,7 +48,7 @@ class GG2LobbyQueryV1(Protocol):
         result += struct.pack("<H", server.ipv4_endpoint[1])
         return result
 
-    def sendReply(self, protocol_id):
+    def sendReply(self, protocol_id: uuid.UUID) -> None:
         servers = self.factory.serverList.get_servers_in_lobby(GG2_LOBBY_ID)
         servers = [
             self.formatServerData(server)
@@ -56,7 +62,7 @@ class GG2LobbyQueryV1(Protocol):
             "Received query for version %s, returned %u Servers." % (protocol_id.hex, len(servers))
         )
 
-    def dataReceived(self, data):
+    def dataReceived(self, data: bytes) -> None:
         self.buffered += data
         if len(self.buffered) > 17:
             self.transport.loseConnection()
@@ -65,13 +71,13 @@ class GG2LobbyQueryV1(Protocol):
         if self.buffered[0] != 128 or len(self.buffered) == 17:
             self.sendReply(gg2_version_to_uuid(self.buffered))
 
-    def connectionMade(self):
+    def connectionMade(self) -> None:
         self.buffered = b""
         self.timeout = reactor.callLater(
             config.CONNECTION_TIMEOUT_SECS, self.transport.loseConnection
         )
 
-    def connectionLost(self, reason):
+    def connectionLost(self, reason) -> None:
         if self.timeout.active():
             self.timeout.cancel()
 
@@ -81,10 +87,13 @@ class GG2LobbyRegV1(DatagramProtocol):
     CONN_CHECK_FACTORY = Factory()
     CONN_CHECK_FACTORY.protocol = SimpleTCPReachabilityCheck
 
-    def __init__(self, serverList):
+    """Handle legacy UDP registrations."""
+
+    def __init__(self, serverList: GameServerList) -> None:
         self.serverList = serverList
 
-    def datagramReceived(self, data, addr):
+    def datagramReceived(self, data: bytes, addr) -> None:
+        """Process a legacy UDP registration packet."""
         host, origport = addr
         if (host, origport) in RECENT_ENDPOINTS:
             return
@@ -152,6 +161,8 @@ class GG2LobbyRegV1(DatagramProtocol):
 class GG2LobbyQueryV1Factory(Factory):
     protocol = GG2LobbyQueryV1
 
-    def __init__(self, serverList):
+    """Factory producing ``GG2LobbyQueryV1`` protocols."""
+
+    def __init__(self, serverList: GameServerList) -> None:
         self.gg2_lobby_id = GG2_LOBBY_ID
         self.serverList = serverList
