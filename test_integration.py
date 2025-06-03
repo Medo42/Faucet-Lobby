@@ -7,6 +7,7 @@ import struct
 import socket
 import threading
 import subprocess
+import os
 import requests
 from contextlib import closing
 
@@ -267,9 +268,11 @@ def run_tests():
     
     # Start the lobby server
     print("Starting lobby server...")
+    # Launch lobby server from repository root
+    repo_root = os.path.dirname(os.path.abspath(__file__))
     server_process = subprocess.Popen([
         sys.executable, "lobby.py"
-    ], cwd="/home/simeon/Schreibtisch/Projektmaterial/upgrade-faucet-lobby/Faucet-Lobby")
+    ], cwd=repo_root)
     
     try:
         # Wait for server to start
