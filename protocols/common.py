@@ -1,12 +1,10 @@
-import socket
 from twisted.internet.protocol import Protocol, ClientFactory
 from expirationset import expirationset
+import config
 
-RECENT_ENDPOINTS = expirationset(10)
+RECENT_ENDPOINTS = expirationset(config.REGISTRATION_THROTTLE_SECS)
 
-# Example IP
-BANNED_IP_STRINGS = {"1.2.3.4"}
-BANNED_IPS = {socket.inet_aton(x) for x in BANNED_IP_STRINGS}
+# Banned IP list is defined in config
 
 class SimpleTCPReachabilityCheck(Protocol):
     def __init__(self, server, host, port, serverList):
