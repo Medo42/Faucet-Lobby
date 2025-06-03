@@ -54,7 +54,7 @@ Tests automatically start/stop the lobby server and verify proper operation of a
 
 ## Architecture
 
-The system supports both legacy Gang Garrison 2 protocols and newer generic protocols. See CLAUDE.md for detailed architecture documentation.
+The system supports both legacy Gang Garrison 2 protocols and newer generic protocols. See AGENTS.md for detailed architecture documentation.
 
 ## Legacy Note
 
