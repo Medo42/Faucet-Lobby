@@ -9,9 +9,13 @@ Start the lobby server:
 python lobby.py
 ```
 
-The server requires Python 3 and the Twisted framework. Install dependencies with:
+The server requires Python 3. Install dependencies using `requirements.txt`:
 ```bash
-pip install twisted requests
+pip install -r requirements.txt
+```
+You can also install the package in editable mode:
+```bash
+pip install -e .
 ```
 
 ### Configuration
