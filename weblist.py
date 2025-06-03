@@ -3,7 +3,9 @@ from xml.sax.saxutils import escape, quoteattr
 import socket
 import config
 
-pageTemplate = u"""<!doctype html>
+
+def page_template(content):
+    return f"""<!doctype html>
 <html>
 <head>
     <title>Lobby status page</title>
@@ -12,13 +14,15 @@ pageTemplate = u"""<!doctype html>
     <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-    <img src="%s" alt="" id=smflogo><div id=head><img src="%s" alt="" id=logo></div>
-    %%s
+    <img src="{config.LOGO_SMFL}" alt="" id=smflogo><div id=head><img src="{config.LOGO_MAIN}" alt="" id=logo></div>
+    {content}
 </body>
-</html>""" % (config.LOGO_SMFL, config.LOGO_MAIN)
+</html>"""
 
-tableTemplate = u"""
-    <h2>Active servers in the %s</h2>
+
+def table_template(lobbyname, rows):
+    return f"""
+    <h2>Active servers in the {lobbyname}</h2>
     <div id=desc><p>Game information links are provided by the game servers and are not in any way related to this site. You have been warned.</p></div>
     <table class="serverlist">
         <thead>
@@ -31,19 +35,21 @@ tableTemplate = u"""
                 <th>Address</th>
             </tr>
         </thead><tbody>
-            %s
+            {rows}
         </tbody>
     </table>
 """
 
-rowTemplate = u"""
+
+def row_template(passworded, name, map_, players, game, address):
+    return f"""
                 <tr>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
+                    <td>{passworded}</td>
+                    <td>{name}</td>
+                    <td>{map_}</td>
+                    <td>{players}</td>
+                    <td>{game}</td>
+                    <td>{address}</td>
                 </tr>
 """
 
@@ -64,32 +70,38 @@ class LobbyStatusResource(Resource):
         passworded = u"X" if server.passworded else u""
         name = htmlprep(server.name.decode('utf-8', 'replace') if isinstance(server.name, bytes) else server.name)
         map = htmlprep(server.infos[b"map"].decode('utf-8', 'replace')) if b"map" in server.infos else u""
-        if(server.bots == 0):
-            players = u"%u/%u" % (server.players, server.slots)
+        if server.bots == 0:
+            players = f"{server.players}/{server.slots}"
         else:
-            players = u"%u+%u/%u" % (server.players, server.bots, server.slots)
-        if(b"game" in server.infos):
-            game = htmlprep(server.infos[b"game"].decode('utf-8', 'replace'))
-            game += (u" "+htmlprep(server.infos[b"game_ver"].decode('utf-8', 'replace'))) if (b"game_ver" in server.infos) else u""
-            if(b"game_url" in server.infos):
-                game = u'<a href=%s>%s</a>' % (quoteattr(server.infos[b"game_url"].decode('utf-8', 'replace')), game)
+            players = f"{server.players}+{server.bots}/{server.slots}"
+        if b"game" in server.infos:
+            game = htmlprep(server.infos[b"game"].decode("utf-8", "replace"))
+            if b"game_ver" in server.infos:
+                game += " " + htmlprep(server.infos[b"game_ver"].decode("utf-8", "replace"))
+            if b"game_url" in server.infos:
+                url = quoteattr(server.infos[b"game_url"].decode("utf-8", "replace"))
+                game = f"<a href={url}>{game}</a>"
         else:
             game = u""
-        address = (u"%s:%u" % (socket.inet_ntoa(server.ipv4_endpoint[0]), server.ipv4_endpoint[1])) if server.ipv4_endpoint is not None else u""
-        return rowTemplate % (passworded, name, map, players, game, address)
+        address = (
+            f"{socket.inet_ntoa(server.ipv4_endpoint[0])}:{server.ipv4_endpoint[1]}"
+            if server.ipv4_endpoint is not None
+            else u""
+        )
+        return row_template(passworded, name, map, players, game, address)
         
     def _format_table(self, lobby):
         if lobby in config.KNOWN_LOBBIES:
             lobbyname = escape(config.KNOWN_LOBBIES[lobby])
         else:
-            lobbyname = u'unknown lobby "%s"' % lobby.hex
+            lobbyname = f'unknown lobby "{lobby.hex}"'
             
         servers = self.serverList.get_servers_in_lobby(lobby)
         serverRows = u"".join([self._format_server(server) for server in servers])
-        
-        return tableTemplate % (lobbyname,serverRows)
+
+        return table_template(lobbyname, serverRows)
         
     def render_GET(self, request):
         lobbies = self.serverList.get_lobbies()
         lobbyTables = u"".join([self._format_table(lobby) for lobby in lobbies])
-        return (pageTemplate % (lobbyTables,)).encode('utf8', 'replace')
+        return page_template(lobbyTables).encode('utf8', 'replace')

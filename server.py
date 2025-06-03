@@ -1,32 +1,31 @@
 import socket
+from dataclasses import dataclass, field
 from expirationset import expirationset
 import config
 
+@dataclass
 class GameServer:
-    def __init__(self, server_id, lobby_id):
-        self.server_id = server_id
-        self.lobby_id = lobby_id
-        self.protocol = 0           # 0 = TCP, 1 = UDP
-        self.ipv4_endpoint = None   # Tuple: (ipv4, port)
-        self.ipv6_endpoint = None   # Tuple: (ipv6, port)
-
-        self.name = b""
-        self.slots = 0
-        self.players = 0
-        self.bots = 0
-        self.passworded = False
-
-        self.infos = {}
+    server_id: object
+    lobby_id: object
+    protocol: int = 0  # 0 = TCP, 1 = UDP
+    ipv4_endpoint: tuple | None = None  # Tuple: (ipv4, port)
+    ipv6_endpoint: tuple | None = None  # Tuple: (ipv6, port)
+    name: bytes = b""
+    slots: int = 0
+    players: int = 0
+    bots: int = 0
+    passworded: bool = False
+    infos: dict = field(default_factory=dict)
 
     def __repr__(self):
-        retstr = "<GameServer, name="+self.name.decode('utf-8', 'replace')+", lobby_id="+str(self.lobby_id)
-        if(self.ipv4_endpoint is not None):
-            anonip = self.ipv4_endpoint[0][:-1]+b"\0"
-            retstr += ", ipv4_endpoint=" + socket.inet_ntoa(anonip)+":"+str(self.ipv4_endpoint[1])
-        if(self.ipv6_endpoint is not None):
-            anonip = (self.ipv6_endpoint[0][:-10]+b"\0"*10, self.ipv6_endpoint[1])
+        retstr = "<GameServer, name=" + self.name.decode("utf-8", "replace") + ", lobby_id=" + str(self.lobby_id)
+        if self.ipv4_endpoint is not None:
+            anonip = self.ipv4_endpoint[0][:-1] + b"\0"
+            retstr += ", ipv4_endpoint=" + socket.inet_ntoa(anonip) + ":" + str(self.ipv4_endpoint[1])
+        if self.ipv6_endpoint is not None:
+            anonip = (self.ipv6_endpoint[0][:-10] + b"\0" * 10, self.ipv6_endpoint[1])
             retstr += ", ipv6_endpoint=" + str(anonip)
-        return retstr+">"
+        return retstr + ">"
 
 class GameServerList:
     def __init__(self, duration=config.SERVER_EXPIRATION_SECS):
