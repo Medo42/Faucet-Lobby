@@ -19,6 +19,7 @@ from protocols.common import (
 GG2_BASE_UUID = uuid.UUID("dea41970-4cea-a588-df40-62faef6f1738")
 GG2_LOBBY_ID = uuid.UUID("1ccf16b1-436d-856f-504d-cc1af306aaa7")
 
+
 def gg2_version_to_uuid(data: bytes) -> uuid.UUID:
     """Return the protocol UUID encoded in a GG2 version field."""
 
@@ -27,6 +28,7 @@ def gg2_version_to_uuid(data: bytes) -> uuid.UUID:
         return uuid.UUID(bytes=data[1:17])
     else:
         return uuid.UUID(int=GG2_BASE_UUID.int + simplever)
+
 
 class GG2LobbyQueryV1(Protocol):
     """Handle TCP queries from legacy GG2 clients."""
@@ -59,7 +61,8 @@ class GG2LobbyQueryV1(Protocol):
         self.transport.write(result)
         self.transport.loseConnection()
         print(
-            "Received query for version %s, returned %u Servers." % (protocol_id.hex, len(servers))
+            "Received query for version %s, returned %u Servers."
+            % (protocol_id.hex, len(servers))
         )
 
     def dataReceived(self, data: bytes) -> None:
@@ -81,9 +84,13 @@ class GG2LobbyQueryV1(Protocol):
         if self.timeout.active():
             self.timeout.cancel()
 
+
 class GG2LobbyRegV1(DatagramProtocol):
     MAGIC_NUMBERS = bytes([4, 8, 15, 16, 23, 42])
-    INFO_PATTERN = re.compile(rb"\A(!private!)?(?:\[([^\]]*)\])?\s*(.*?)\s*(?:\[(\d+)/(\d+)\])?(?: - (.*))?\Z", re.DOTALL)
+    INFO_PATTERN = re.compile(
+        rb"\A(!private!)?(?:\[([^\]]*)\])?\s*(.*?)\s*(?:\[(\d+)/(\d+)\])?(?: - (.*))?\Z",
+        re.DOTALL,
+    )
     CONN_CHECK_FACTORY = Factory()
     CONN_CHECK_FACTORY.protocol = SimpleTCPReachabilityCheck
 
@@ -122,7 +129,9 @@ class GG2LobbyRegV1(DatagramProtocol):
         ip = socket.inet_aton(host)
         if ip in config.BANNED_IPS:
             return
-        server_id = uuid.UUID(int=GG2_BASE_UUID.int + (struct.unpack("!L", ip)[0] << 16) + port)
+        server_id = uuid.UUID(
+            int=GG2_BASE_UUID.int + (struct.unpack("!L", ip)[0] << 16) + port
+        )
         server = GameServer(server_id, GG2_LOBBY_ID)
         server.infos[b"protocol_id"] = protocol_id.bytes
         server.ipv4_endpoint = (ip, port)
@@ -144,7 +153,9 @@ class GG2LobbyRegV1(DatagramProtocol):
                 if mod == b"OHU":
                     server.infos[b"game"] = b"Orpheon's Hosting Utilities"
                     server.infos[b"game_short"] = b"ohu"
-                    server.infos[b"game_url"] = b"http://www.ganggarrison.com/forums/index.php?topic=28839.0"
+                    server.infos[b"game_url"] = (
+                        b"http://www.ganggarrison.com/forums/index.php?topic=28839.0"
+                    )
                 else:
                     server.infos[b"game"] = mod
                     if len(mod) <= 10:
@@ -157,6 +168,7 @@ class GG2LobbyRegV1(DatagramProtocol):
             SimpleTCPReachabilityCheckFactory(server, host, port, self.serverList),
             timeout=config.CONNECTION_TIMEOUT_SECS,
         )
+
 
 class GG2LobbyQueryV1Factory(Factory):
     protocol = GG2LobbyQueryV1

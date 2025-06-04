@@ -12,7 +12,7 @@ import config
 
 def read_fully(sock, length):
     """Read exactly *length* bytes from *sock*."""
-    result = b''
+    result = b""
     while len(result) < length:
         chunk = sock.recv(length - len(result))
         if not chunk:
@@ -29,11 +29,11 @@ def query_lobby_stats():
     with closing(socket.create_connection(("127.0.0.1", config.NEWSTYLE_PORT))) as sock:
         sock.sendall(LIST_PROTOCOL_ID.bytes + GG2_LOBBY_ID.bytes)
 
-        servercount = struct.unpack('>L', read_fully(sock, 4))[0]
+        servercount = struct.unpack(">L", read_fully(sock, 4))[0]
         total_playercount = 0
         total_playerslots = 0
         for _ in range(servercount):
-            serverlen = struct.unpack('>L', read_fully(sock, 4))[0]
+            serverlen = struct.unpack(">L", read_fully(sock, 4))[0]
             serverblock = read_fully(sock, serverlen)
             (
                 _protocol,
@@ -46,9 +46,7 @@ def query_lobby_stats():
                 _bots,
                 _flags,
                 _infolen,
-            ) = struct.unpack(
-                ">BH4sH16sHHHHH", serverblock[:35]
-            )
+            ) = struct.unpack(">BH4sH16sHHHHH", serverblock[:35])
             total_playercount += playercount
             total_playerslots += playerslots
 

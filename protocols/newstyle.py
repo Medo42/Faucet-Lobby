@@ -14,6 +14,7 @@ from protocols.common import (
     RECENT_ENDPOINTS,
 )
 
+
 class NewStyleList(Protocol):
     """TCP protocol returning lists of servers for a lobby."""
 
@@ -53,7 +54,8 @@ class NewStyleList(Protocol):
         ]
         self.transport.write(struct.pack(">L", len(servers)) + b"".join(servers))
         print(
-            "Received newstyle query for Lobby %s, returned %u Servers." % (lobby_id.hex, len(servers))
+            "Received newstyle query for Lobby %s, returned %u Servers."
+            % (lobby_id.hex, len(servers))
         )
 
     def dataReceived(self, data: bytes) -> None:
@@ -81,6 +83,7 @@ class NewStyleList(Protocol):
         if self.timeout.active():
             self.timeout.cancel()
 
+
 class NewStyleListFactory(Factory):
     protocol = NewStyleList
 
@@ -88,6 +91,7 @@ class NewStyleListFactory(Factory):
 
     def __init__(self, serverList: GameServerList) -> None:
         self.serverList = serverList
+
 
 class NewStyleReg(DatagramProtocol):
     """UDP-based registration handler supporting multiple sub-protocols."""
@@ -108,6 +112,7 @@ class NewStyleReg(DatagramProtocol):
             return
 
         reg_protocol.handle(data, (host, origport), self.serverList)
+
 
 class GG2RegHandler:
     """Handle registration of a GG2-style server."""
@@ -169,6 +174,7 @@ class GG2RegHandler:
         else:
             serverList.put(server)
 
+
 class GG2UnregHandler:
     """Handle unregistration of a GG2-style server."""
 
@@ -178,6 +184,11 @@ class GG2UnregHandler:
             return
         serverList.remove(uuid.UUID(bytes=data[16:32]))
 
+
 # Register handlers for GG2-style servers
-NewStyleReg.REG_PROTOCOLS[uuid.UUID("b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352")] = GG2RegHandler()
-NewStyleReg.REG_PROTOCOLS[uuid.UUID("488984ac-45dc-86e1-9901-98dd1c01c064")] = GG2UnregHandler()
+NewStyleReg.REG_PROTOCOLS[uuid.UUID("b5dae2e8-424f-9ed0-0fcb-8c21c7ca1352")] = (
+    GG2RegHandler()
+)
+NewStyleReg.REG_PROTOCOLS[uuid.UUID("488984ac-45dc-86e1-9901-98dd1c01c064")] = (
+    GG2UnregHandler()
+)

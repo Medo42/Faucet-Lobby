@@ -11,10 +11,13 @@ RECENT_ENDPOINTS = expirationset(config.REGISTRATION_THROTTLE_SECS)
 
 # Banned IP list is defined in config
 
+
 class SimpleTCPReachabilityCheck(Protocol):
     """Attempt to connect to a server to verify it is reachable."""
 
-    def __init__(self, server: GameServer, host: str, port: int, serverList: GameServerList) -> None:
+    def __init__(
+        self, server: GameServer, host: str, port: int, serverList: GameServerList
+    ) -> None:
         self.__server = server
         self.__host = host
         self.__port = port
@@ -25,10 +28,13 @@ class SimpleTCPReachabilityCheck(Protocol):
         self.__serverList.put(self.__server)
         self.transport.loseConnection()
 
+
 class SimpleTCPReachabilityCheckFactory(ClientFactory):
     """Factory for ``SimpleTCPReachabilityCheck``."""
 
-    def __init__(self, server: GameServer, host: str, port: int, serverList: GameServerList) -> None:
+    def __init__(
+        self, server: GameServer, host: str, port: int, serverList: GameServerList
+    ) -> None:
         self.__server = server
         self.__host = host
         self.__port = port

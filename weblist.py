@@ -49,7 +49,9 @@ def table_template(lobbyname: str, rows: str) -> str:
 """
 
 
-def row_template(passworded: str, name: str, map_: str, players: str, game: str, address: str) -> str:
+def row_template(
+    passworded: str, name: str, map_: str, players: str, game: str, address: str
+) -> str:
     """Create one HTML table row for a server entry."""
 
     return f"""
@@ -67,23 +69,32 @@ def row_template(passworded: str, name: str, map_: str, players: str, game: str,
 def htmlprep(utf8string: bytes | str) -> str:
     """Escape a UTF-8 byte string or ``str`` for HTML output."""
     if isinstance(utf8string, bytes):
-        return escape(utf8string.decode('utf-8', 'replace'))
+        return escape(utf8string.decode("utf-8", "replace"))
     else:
         return escape(utf8string)
+
 
 class LobbyStatusResource(Resource):
     isLeaf = True
 
-    def __init__(self, serverList: 'GameServerList') -> None:
+    def __init__(self, serverList: "GameServerList") -> None:
         """Create a status page serving the contents of ``serverList``."""
 
         self.serverList = serverList
-        
-    def _format_server(self, server: 'GameServer') -> str:
+
+    def _format_server(self, server: "GameServer") -> str:
         """Return an HTML table row for ``server``."""
-        passworded = u"X" if server.passworded else u""
-        name = htmlprep(server.name.decode('utf-8', 'replace') if isinstance(server.name, bytes) else server.name)
-        map = htmlprep(server.infos[b"map"].decode('utf-8', 'replace')) if b"map" in server.infos else u""
+        passworded = "X" if server.passworded else ""
+        name = htmlprep(
+            server.name.decode("utf-8", "replace")
+            if isinstance(server.name, bytes)
+            else server.name
+        )
+        map = (
+            htmlprep(server.infos[b"map"].decode("utf-8", "replace"))
+            if b"map" in server.infos
+            else ""
+        )
         if server.bots == 0:
             players = f"{server.players}/{server.slots}"
         else:
@@ -91,32 +102,34 @@ class LobbyStatusResource(Resource):
         if b"game" in server.infos:
             game = htmlprep(server.infos[b"game"].decode("utf-8", "replace"))
             if b"game_ver" in server.infos:
-                game += " " + htmlprep(server.infos[b"game_ver"].decode("utf-8", "replace"))
+                game += " " + htmlprep(
+                    server.infos[b"game_ver"].decode("utf-8", "replace")
+                )
             if b"game_url" in server.infos:
                 url = quoteattr(server.infos[b"game_url"].decode("utf-8", "replace"))
                 game = f"<a href={url}>{game}</a>"
         else:
-            game = u""
+            game = ""
         address = (
             f"{socket.inet_ntoa(server.ipv4_endpoint[0])}:{server.ipv4_endpoint[1]}"
             if server.ipv4_endpoint is not None
-            else u""
+            else ""
         )
         return row_template(passworded, name, map, players, game, address)
-        
+
     def _format_table(self, lobby: uuid.UUID) -> str:
         """Return a full HTML table listing servers for ``lobby``."""
         if lobby in config.KNOWN_LOBBIES:
             lobbyname = escape(config.KNOWN_LOBBIES[lobby])
         else:
             lobbyname = f'unknown lobby "{lobby.hex}"'
-            
+
         servers = self.serverList.get_servers_in_lobby(lobby)
-        serverRows = u"".join([self._format_server(server) for server in servers])
+        serverRows = "".join([self._format_server(server) for server in servers])
 
         return table_template(lobbyname, serverRows)
-        
+
     def render_GET(self, request):
         lobbies = self.serverList.get_lobbies()
-        lobbyTables = u"".join([self._format_table(lobby) for lobby in lobbies])
-        return page_template(lobbyTables).encode('utf8', 'replace')
+        lobbyTables = "".join([self._format_table(lobby) for lobby in lobbies])
+        return page_template(lobbyTables).encode("utf8", "replace")
