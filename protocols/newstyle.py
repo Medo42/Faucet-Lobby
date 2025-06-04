@@ -1,3 +1,5 @@
+"""Modern registration and query protocols using UUIDs and key/value pairs."""
+
 import uuid
 import struct
 import socket
@@ -6,21 +8,23 @@ from twisted.internet.protocol import Protocol, Factory, DatagramProtocol
 
 import config
 
-from server import GameServer
+from server import GameServer, GameServerList
 from protocols.common import (
     SimpleTCPReachabilityCheckFactory,
     RECENT_ENDPOINTS,
 )
 
 class NewStyleList(Protocol):
+    """TCP protocol returning lists of servers for a lobby."""
+
     LIST_PROTOCOL_ID = uuid.UUID("297d0df4-430c-bf61-640a-640897eaef57")
 
-    def formatKeyValue(self, k, v):
+    def formatKeyValue(self, k: bytes, v: bytes) -> bytes:
         k = k[:255]
         v = v[:65535]
         return bytes([len(k)]) + k + struct.pack(">H", len(v)) + v
 
-    def formatServerData(self, server):
+    def formatServerData(self, server: GameServer) -> bytes:
         ipv4_endpoint = server.ipv4_endpoint or (b"\x00" * 4, 0)
         ipv6_endpoint = server.ipv6_endpoint or (b"\x00" * 16, 0)
         flags = 1 if server.passworded else 0
@@ -42,7 +46,7 @@ class NewStyleList(Protocol):
         result += b"".join([self.formatKeyValue(k, v) for (k, v) in infos.items()])
         return struct.pack(">L", len(result)) + result
 
-    def sendReply(self, lobby_id):
+    def sendReply(self, lobby_id: uuid.UUID) -> None:
         servers = [
             self.formatServerData(server)
             for server in self.factory.serverList.get_servers_in_lobby(lobby_id)
@@ -52,7 +56,7 @@ class NewStyleList(Protocol):
             "Received newstyle query for Lobby %s, returned %u Servers." % (lobby_id.hex, len(servers))
         )
 
-    def dataReceived(self, data):
+    def dataReceived(self, data: bytes) -> None:
         self.buffered += data
         if len(self.buffered) == 32:
             proto_id = uuid.UUID(bytes=self.buffered[:16])
@@ -66,30 +70,35 @@ class NewStyleList(Protocol):
                 print("Received too many bytes: %u" % (len(self.buffered)))
             self.transport.loseConnection()
 
-    def connectionMade(self):
+    def connectionMade(self) -> None:
         self.buffered = b""
         self.list_protocol = None
         self.timeout = reactor.callLater(
             config.CONNECTION_TIMEOUT_SECS, self.transport.loseConnection
         )
 
-    def connectionLost(self, reason):
+    def connectionLost(self, reason) -> None:
         if self.timeout.active():
             self.timeout.cancel()
 
 class NewStyleListFactory(Factory):
     protocol = NewStyleList
 
-    def __init__(self, serverList):
+    """Factory for ``NewStyleList`` protocols."""
+
+    def __init__(self, serverList: GameServerList) -> None:
         self.serverList = serverList
 
 class NewStyleReg(DatagramProtocol):
-    REG_PROTOCOLS = {}
+    """UDP-based registration handler supporting multiple sub-protocols."""
 
-    def __init__(self, serverList):
+    REG_PROTOCOLS: dict[uuid.UUID, object] = {}
+
+    def __init__(self, serverList: GameServerList) -> None:
         self.serverList = serverList
 
-    def datagramReceived(self, data, addr):
+    def datagramReceived(self, data: bytes, addr) -> None:
+        """Dispatch a UDP registration packet to the appropriate handler."""
         host, origport = addr
         if len(data) < 16:
             return
@@ -101,7 +110,9 @@ class NewStyleReg(DatagramProtocol):
         reg_protocol.handle(data, (host, origport), self.serverList)
 
 class GG2RegHandler:
-    def handle(self, data, addr, serverList):
+    """Handle registration of a GG2-style server."""
+
+    def handle(self, data: bytes, addr, serverList: GameServerList) -> None:
         host, origport = addr
         if (host, origport) in RECENT_ENDPOINTS:
             return
@@ -159,7 +170,9 @@ class GG2RegHandler:
             serverList.put(server)
 
 class GG2UnregHandler:
-    def handle(self, data, addr, serverList):
+    """Handle unregistration of a GG2-style server."""
+
+    def handle(self, data: bytes, addr, serverList: GameServerList) -> None:
         host, origport = addr
         if len(data) != 32:
             return

@@ -1,10 +1,16 @@
+"""HTTP resources for displaying the lobby status page."""
+
 from twisted.web.resource import Resource
 from xml.sax.saxutils import escape, quoteattr
 import socket
+import uuid
 import config
+from server import GameServer, GameServerList
 
 
-def page_template(content):
+def page_template(content: str) -> str:
+    """Return full HTML page embedding ``content``."""
+
     return f"""<!doctype html>
 <html>
 <head>
@@ -20,7 +26,9 @@ def page_template(content):
 </html>"""
 
 
-def table_template(lobbyname, rows):
+def table_template(lobbyname: str, rows: str) -> str:
+    """Format the table listing all servers for a lobby."""
+
     return f"""
     <h2>Active servers in the {lobbyname}</h2>
     <div id=desc><p>Game information links are provided by the game servers and are not in any way related to this site. You have been warned.</p></div>
@@ -41,7 +49,9 @@ def table_template(lobbyname, rows):
 """
 
 
-def row_template(passworded, name, map_, players, game, address):
+def row_template(passworded: str, name: str, map_: str, players: str, game: str, address: str) -> str:
+    """Create one HTML table row for a server entry."""
+
     return f"""
                 <tr>
                     <td>{passworded}</td>
@@ -54,7 +64,8 @@ def row_template(passworded, name, map_, players, game, address):
 """
 
 
-def htmlprep(utf8string):
+def htmlprep(utf8string: bytes | str) -> str:
+    """Escape a UTF-8 byte string or ``str`` for HTML output."""
     if isinstance(utf8string, bytes):
         return escape(utf8string.decode('utf-8', 'replace'))
     else:
@@ -62,11 +73,14 @@ def htmlprep(utf8string):
 
 class LobbyStatusResource(Resource):
     isLeaf = True
-    
-    def __init__(self, serverList):
+
+    def __init__(self, serverList: 'GameServerList') -> None:
+        """Create a status page serving the contents of ``serverList``."""
+
         self.serverList = serverList
         
-    def _format_server(self, server):
+    def _format_server(self, server: 'GameServer') -> str:
+        """Return an HTML table row for ``server``."""
         passworded = u"X" if server.passworded else u""
         name = htmlprep(server.name.decode('utf-8', 'replace') if isinstance(server.name, bytes) else server.name)
         map = htmlprep(server.infos[b"map"].decode('utf-8', 'replace')) if b"map" in server.infos else u""
@@ -90,7 +104,8 @@ class LobbyStatusResource(Resource):
         )
         return row_template(passworded, name, map, players, game, address)
         
-    def _format_table(self, lobby):
+    def _format_table(self, lobby: uuid.UUID) -> str:
+        """Return a full HTML table listing servers for ``lobby``."""
         if lobby in config.KNOWN_LOBBIES:
             lobbyname = escape(config.KNOWN_LOBBIES[lobby])
         else:

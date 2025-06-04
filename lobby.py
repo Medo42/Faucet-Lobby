@@ -1,3 +1,5 @@
+"""Entry point that wires up the lobby server and HTTP interface."""
+
 import twisted.web.server
 import twisted.web.static
 from twisted.internet import reactor
