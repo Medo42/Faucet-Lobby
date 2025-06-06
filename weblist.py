@@ -90,7 +90,7 @@ class LobbyStatusResource(Resource):
             if isinstance(server.name, bytes)
             else server.name
         )
-        map = (
+        map_ = (
             htmlprep(server.infos[b"map"].decode("utf-8", "replace"))
             if b"map" in server.infos
             else ""
@@ -115,7 +115,7 @@ class LobbyStatusResource(Resource):
             if server.ipv4_endpoint is not None
             else ""
         )
-        return row_template(passworded, name, map, players, game, address)
+        return row_template(passworded, name, map_, players, game, address)
 
     def _format_table(self, lobby: uuid.UUID) -> str:
         """Return a full HTML table listing servers for ``lobby``."""
