@@ -35,7 +35,7 @@ def table_template(lobbyname: str, rows: str) -> str:
     <table class="serverlist">
         <thead>
             <tr>
-                <th>PW</th>
+                <th class="pw">PW</th>
                 <th>Name</th>
                 <th>Map</th>
                 <th>Players</th>
@@ -56,7 +56,7 @@ def row_template(
 
     return f"""
                 <tr>
-                    <td>{passworded}</td>
+                    <td class="pw">{passworded}</td>
                     <td>{name}</td>
                     <td>{map_}</td>
                     <td>{players}</td>
