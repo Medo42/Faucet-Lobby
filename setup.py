@@ -8,5 +8,5 @@ setup(
     py_modules=["config", "expirationset", "lobby", "server", "weblist"],
     package_data={"": ["httpdocs/*"]},
     install_requires=["Twisted", "requests"],
-    python_requires=">=3.7",
+    python_requires=">=3.10",
 )
