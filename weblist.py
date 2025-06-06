@@ -20,7 +20,7 @@ def page_template(content: str) -> str:
     <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-    <img src="{config.LOGO_SMFL}" alt="" id=smflogo><div id=head><img src="{config.LOGO_MAIN}" alt="" id=logo></div>
+    <img src="forum_logo.gif" alt="" id=smflogo><div id=head><img src="header_logo.png" alt="" id=logo></div>
     {content}
 </body>
 </html>"""
