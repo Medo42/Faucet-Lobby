@@ -6,8 +6,9 @@ GG2_PORT = 29942  # Legacy GG2 registration/query
 NEWSTYLE_PORT = 29944  # New-style registration/query
 WEB_PORT = 29950  # Web status interface
 
-# Banned IP list
-BANNED_IP_STRINGS = {"1.2.3.4"}
+# Banned IP list; add IPs here to ban registrations (e.g. "1.2.3.4")
+# BANNED_IP_STRINGS = {"1.2.3.4"}
+BANNED_IP_STRINGS = set()
 BANNED_IPS = {socket.inet_aton(ip) for ip in BANNED_IP_STRINGS}
 
 # Flood-control and server expiration durations
